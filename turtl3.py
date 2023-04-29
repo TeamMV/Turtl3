@@ -13,7 +13,7 @@ keys = []
 
 def listen_for_key(k):
     turtle.onkeypress(lambda: keys.append(k), k)
-    turtle.onkeyrelease(lambda: keys.remove(k), k)
+    turtle.onkeyrelease(lambda: keys.remove(k) if keys.__contains__(k) else 0, k)
 
 
 def listen_for_keys(ks):
@@ -36,8 +36,10 @@ class Turtl3:
         self.obj_ptr = 0
         self.fps = 60
         self.ups = 30
-        self.speed = 3
+        self.speed = 0.3
+        self.rot_speed = 0.005
         self.mode = T3_TRIANGLES
+        self.wireframe = False
         self.pos = Vec3()
         self.rot = Vec3()
         self.view = Mat4()
@@ -51,6 +53,9 @@ class Turtl3:
 
     def set_draw_mode(self, mode):
         self.mode = mode
+
+    def set_writeframe(self, wireframe):
+        self.wireframe = wireframe
 
     def loop(self, start, draw, update):
         """The main loop of the program, call it once and receive the update and draw event wit the given function"""
@@ -70,12 +75,15 @@ class Turtl3:
                 update(self)
 
     def move(self, x, y, z):
+        x *= self.speed
+        y *= self.speed
+        z *= self.speed
         if z != 0:
-            self.pos.set_x(self.pos.x() + math.cos(self.rot.y()) * -1 * z)
+            self.pos.set_x(self.pos.x() + math.cos(self.rot.y()) * z)
             self.pos.set_z(self.pos.z() + math.sin(self.rot.y()) * z)
 
         if x != 0:
-            self.pos.set_x(self.pos.x() + math.cos(self.rot.y() - PI_4) * -1 * x)
+            self.pos.set_x(self.pos.x() + math.cos(self.rot.y() - PI_4) * x)
             self.pos.set_z(self.pos.z() + math.sin(self.rot.y() - PI_4) * x)
 
         self.pos.set_y(self.pos.y() + y)
@@ -83,19 +91,19 @@ class Turtl3:
         self.view.move(self.pos, self.rot)
 
     def rotate(self, x, y, z):
-        self.rot += Vec3(x, y, z)
+        self.rot += Vec3(x, y, z) * self.rot_speed
         self.view.move(self.pos, self.rot)
 
-    def render(self, mode, wireframe=False):
+    def render(self, mode):
         turtle.clear()
         self.ren.render(self.vertices, self.indices, self.colors, self.projection, self.view, mode, self.width,
-                        self.height, wireframe)
+                        self.height, self.wireframe)
         self.vertices.clear()
         self.indices.clear()
         self.colors.clear()
         self.obj_ptr = 0
 
-    def cube(self, x, y, z, w, h, d, color):
+    def cube(self, x, y, z, w, h, d, *args, **kwargs):
         self.vertices.append(Vec3(x, y, z))
         self.vertices.append(Vec3(x + w, y, z))
         self.vertices.append(Vec3(x + w, y, z + d))
@@ -149,8 +157,17 @@ class Turtl3:
 
         self.obj_ptr += 8
 
-        for i in range(0, 12):
-            self.colors.append(color)
+        if kwargs.get('color', None) is not None:
+            for i in range(0, 12):
+                self.colors.append(kwargs['color'])
+        elif kwargs.get('colors', None) is not None:
+            for i in range(0, 6):
+                self.colors.append(kwargs['colors'][i])
+                self.colors.append(kwargs['colors'][i])
+        else:
+            color = Vec3()
+            for i in range(0, 12):
+                self.colors.append(color)
 
 
 class Renderer3D:
@@ -202,8 +219,12 @@ class Renderer3D:
                 continue
 
             color = colors[i // mode]
-            turtle.pencolor((color.x(), color.y(), color.z()))
-            turtle.fillcolor((color.x(), color.y(), color.z()))
+            if isinstance(color, str):
+                turtle.pencolor(color)
+                turtle.fillcolor(color)
+            else:
+                turtle.pencolor((color.x(), color.y(), color.z()))
+                turtle.fillcolor((color.x(), color.y(), color.z()))
             turtle.penup()
             turtle.goto(current[mode - 1].x() * w, current[mode - 1].y() * h)
             turtle.pendown()
