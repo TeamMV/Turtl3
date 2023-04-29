@@ -12,7 +12,7 @@ keys = []
 
 
 def listen_for_key(k):
-    turtle.onkeypress(lambda: keys.append(k), k)
+    turtle.onkeypress(lambda: keys.append(k) if not keys.__contains__(k) else 0, k)
     turtle.onkeyrelease(lambda: keys.remove(k) if keys.__contains__(k) else 0, k)
 
 
@@ -36,11 +36,12 @@ class Turtl3:
         self.obj_ptr = 0
         self.fps = 60
         self.ups = 30
-        self.speed = 0.3
-        self.rot_speed = 0.005
+        self.speed = 0.4
+        self.rot_speed = 0.01
         self.mode = T3_TRIANGLES
         self.wireframe = False
-        self.pos = Vec3()
+        self.wireframe_overlay = False
+        self.pos = Vec3(0, 0, -20)
         self.rot = Vec3()
         self.view = Mat4()
         self.projection = Mat4()
@@ -54,8 +55,13 @@ class Turtl3:
     def set_draw_mode(self, mode):
         self.mode = mode
 
-    def set_writeframe(self, wireframe):
+    def set_wireframe(self, wireframe):
         self.wireframe = wireframe
+
+    def set_wireframe_overlay(self, wireframe_overlay):
+        if wireframe_overlay:
+            self.wireframe = False
+        self.wireframe_overlay = wireframe_overlay
 
     def loop(self, start, draw, update):
         """The main loop of the program, call it once and receive the update and draw event wit the given function"""
@@ -97,13 +103,23 @@ class Turtl3:
     def render(self, mode):
         turtle.clear()
         self.ren.render(self.vertices, self.indices, self.colors, self.projection, self.view, mode, self.width,
-                        self.height, self.wireframe)
+                        self.height, self.wireframe, self.wireframe_overlay)
+        turtle.update()
         self.vertices.clear()
         self.indices.clear()
         self.colors.clear()
         self.obj_ptr = 0
 
-    def cube(self, x, y, z, w, h, d, *args, **kwargs):
+    def model(self, model):
+        for vertex in model.vertices:
+            self.vertices.append(vertex)
+        for index in model.indices:
+            self.indices.append(self.obj_ptr + index)
+        self.obj_ptr += len(model.vertices)
+        for i in range(len(model.indices) // 3):
+            self.colors.append("gray50")
+
+    def cube(self, x, y, z, w, h, d, **kwargs):
         self.vertices.append(Vec3(x, y, z))
         self.vertices.append(Vec3(x + w, y, z))
         self.vertices.append(Vec3(x + w, y, z + d))
@@ -174,7 +190,7 @@ class Renderer3D:
     def __init__(self, turtl3):
         self.turtl3 = turtl3
 
-    def render(self, vertices, indices, colors, projection, view, mode: int, width, height, wireframe):
+    def render(self, vertices, indices, colors, projection, view, mode: int, width, height, wireframe, overlay):
         """Vec3(x, y, z)"""
         mapped = []
         vp = projection * view
@@ -198,7 +214,7 @@ class Renderer3D:
 
             # check for indices outside the camera
             for vertex in current:
-                if abs(vertex.x()) <= 1.0 or abs(vertex.y()) <= 1.0:
+                if abs(vertex.x()) < 1.0 or abs(vertex.y()) < 1.0:
                     break
             else:
                 i += mode
@@ -225,6 +241,8 @@ class Renderer3D:
             else:
                 turtle.pencolor((color.x(), color.y(), color.z()))
                 turtle.fillcolor((color.x(), color.y(), color.z()))
+            if overlay:
+                turtle.pencolor("black")
             turtle.penup()
             turtle.goto(current[mode - 1].x() * w, current[mode - 1].y() * h)
             turtle.pendown()
@@ -236,7 +254,6 @@ class Renderer3D:
                 turtle.end_fill()
             turtle.penup()
             i += mode
-        turtle.update()
 
 
 def fma(a, b, c):
@@ -433,3 +450,50 @@ class Vec2:
 
     def y(self):
         return self.vec2[1]
+
+
+class Model:
+    def __init__(self):
+        self.vertices = []
+        self.indices = []
+
+    def add_vertex(self, vertex):
+        self.vertices.append(vertex)
+
+    def add_index(self, index):
+        self.indices.append(index)
+
+    def move(self, pos):
+        self.vertices = [v + pos for v in self.vertices]
+
+    def scale(self, factor):
+        self.vertices = [v * factor for v in self.vertices]
+
+
+def process_face(token, faces):
+    line_token = token.split('/')
+    pos = int(line_token[0]) - 1
+    faces.append(pos)
+
+
+def load_model(filename):
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+        model = Model()
+        faces = []
+        for line in lines:
+            tokens = line.strip().split(' ')
+            match tokens[0]:
+                case 'v':
+                    model.add_vertex(Vec3(float(tokens[1]), float(tokens[2]) * -1, float(tokens[3])))
+                case 'f':
+                    process_face(tokens[1], faces)
+                    process_face(tokens[2], faces)
+                    process_face(tokens[3], faces)
+                case _:
+                    pass
+
+        for face in faces:
+            model.add_index(face)
+
+        return model
