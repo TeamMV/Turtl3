@@ -1,9 +1,28 @@
 import turtle
 import math
+import time
 
 T3_LINES = 2
 T3_TRIANGLES = 3
 T3_QUADS = 4
+
+PI_4 = math.radians(90)
+
+keys = []
+
+
+def listen_for_key(k):
+    turtle.onkeypress(lambda: keys.append(k), k)
+    turtle.onkeyrelease(lambda: keys.remove(k), k)
+
+
+def listen_for_keys(ks):
+    for k in ks:
+        listen_for_key(k)
+
+
+def is_pressed(k):
+    return keys.__contains__(k)
 
 
 class Turtl3:
@@ -15,6 +34,10 @@ class Turtl3:
         self.indices = []
         self.colors = []
         self.obj_ptr = 0
+        self.fps = 60
+        self.ups = 30
+        self.speed = 3
+        self.mode = T3_TRIANGLES
         self.pos = Vec3()
         self.rot = Vec3()
         self.view = Mat4()
@@ -26,8 +49,37 @@ class Turtl3:
         turtle.speed(0)
         turtle.tracer(0, 0)
 
+    def set_draw_mode(self, mode):
+        self.mode = mode
+
+    def loop(self, start, draw, update):
+        """The main loop of the program, call it once and receive the update and draw event wit the given function"""
+        r = time.time() * 1000
+        u = time.time() * 1000
+        fps = 60
+        ups = 20
+        fb = 1000 / fps
+        ub = 1000 / ups
+        start(self)
+        turtle.listen()
+        while True:
+            if (time.time() * 1000) - r >= fb:
+                draw(self)
+                self.render(self.mode)
+            if (time.time() * 1000) - u >= ub:
+                update(self)
+
     def move(self, x, y, z):
-        self.pos += Vec3(x, y, z)
+        if z != 0:
+            self.pos.set_x(self.pos.x() + math.cos(self.rot.y()) * -1 * z)
+            self.pos.set_z(self.pos.z() + math.sin(self.rot.y()) * z)
+
+        if x != 0:
+            self.pos.set_x(self.pos.x() + math.cos(self.rot.y() - PI_4) * -1 * x)
+            self.pos.set_z(self.pos.z() + math.sin(self.rot.y() - PI_4) * x)
+
+        self.pos.set_y(self.pos.y() + y)
+
         self.view.move(self.pos, self.rot)
 
     def rotate(self, x, y, z):
@@ -36,7 +88,8 @@ class Turtl3:
 
     def render(self, mode, wireframe=False):
         turtle.clear()
-        self.ren.render(self.vertices, self.indices, self.colors, self.projection, self.view, mode, self.width, self.height, wireframe)
+        self.ren.render(self.vertices, self.indices, self.colors, self.projection, self.view, mode, self.width,
+                        self.height, wireframe)
         self.vertices.clear()
         self.indices.clear()
         self.colors.clear()
@@ -124,7 +177,7 @@ class Renderer3D:
                 i += mode
                 continue
 
-            current = [mapped[j] for j in indices[i:i+mode]]
+            current = [mapped[j] for j in indices[i:i + mode]]
 
             # check for indices outside the camera
             for vertex in current:
@@ -331,8 +384,20 @@ class Vec3:
     def z(self):
         return self.vec3[2]
 
+    def set_x(self, val):
+        self.vec3[0] = val
+
+    def set_y(self, val):
+        self.vec3[1] = val
+
+    def set_z(self, val):
+        self.vec3[2] = val
+
     def __add__(self, other):
         return Vec3(self.x() + other.x(), self.y() + other.y(), self.z() + other.z())
+
+    def __mul__(self, other):
+        return Vec3(self.x() * other, self.y() * other, self.z() * other)
 
 
 class Vec2:

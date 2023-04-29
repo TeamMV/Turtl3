@@ -1,63 +1,42 @@
-import time
-import turtle
-
 from turtl3 import *
 
-draw = Turtl3(800, 600)
-speed = 3
+
+def start(t: Turtl3):
+    t.fps = 60
+    t.ups = 30
+    listen_for_keys(["w", "a", "s", "d", "space", "Shift_L", "uparrow", "downarrow", "leftarrow", "rightarrow"])
 
 
-def w():
-    draw.move(0, 0, speed)
+def draw(t: Turtl3):
+    t.cube(10, 10, -40, 10, 10, 10, Vec3(0, 0, 0))
 
 
-def a():
-    draw.move(-speed, 0, 0)
+def update(t: Turtl3):
+    if is_pressed("space"):
+        t.move(0, 1, 0)
+    if is_pressed("Shift_L"):
+        t.move(0, -1, 0)
+    if is_pressed("w"):
+        t.move(-1, 0, 0)
+    if is_pressed("a"):
+        t.move(0, 0, 1)
+    if is_pressed("s"):
+        t.move(1, 0, 0)
+    if is_pressed("d"):
+        t.move(0, 0, -1)
+    if is_pressed("uparrow"):
+        t.rotate(1, 0, 0)
+    if is_pressed("downarrow"):
+        t.rotate(-1, 0, 0)
+    if is_pressed("leftarrow"):
+        t.rotate(0, 1, 0)
+    if is_pressed("rightarrow"):
+        t.rotate(0, -1, 0)
 
-
-def s():
-    draw.move(0, 0, -speed)
-
-
-def d():
-    draw.move(speed, 0, 0)
-
-
-def space():
-    draw.move(0, speed, 0)
-
-
-def shift():
-    draw.move(0, -speed, 0)
-
-
-def l():
-    draw.rotate(0, 0.05, 0)
-
-def r():
-    draw.rotate(0, -0.05, 0)
-
-def u():
-    draw.rotate(0.05, 0, 0)
-
-def do():
-    draw.rotate(-0.05, 0, 0)
 
 def main():
-    turtle.onkeypress(w, "w")
-    turtle.onkeypress(a, "a")
-    turtle.onkeypress(s, "s")
-    turtle.onkeypress(d, "d")
-    turtle.onkeypress(space, "space")
-    turtle.onkeypress(shift, "x")
-    turtle.onkeypress(l, "Left")
-    turtle.onkeypress(r, "Right")
-    turtle.onkeypress(u, "Up")
-    turtle.onkeypress(do, "Down")
-    while True:
-        turtle.listen()
-        draw.cube(10, 10, -40, 10, 10, 10, Vec3(0, 0, 0))
-        draw.render(T3_TRIANGLES)
+    t = Turtl3(800, 600)
+    t.loop(start, draw, update)
 
 
 if __name__ == '__main__':
