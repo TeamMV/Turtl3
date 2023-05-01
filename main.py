@@ -1,3 +1,6 @@
+import math
+import time
+
 from turtl3 import *
 
 model = None
@@ -5,16 +8,23 @@ model = None
 
 def start(t: Turtl3):
     global model
-    model = load_model("monkey.obj")
-    model.move(Vec3(0, 0, 10))
+    model = load_model("sphere.obj")
+    model.move(Vec3(0, -5, 10))
+    t.rotate(0, 5, 0)
+    t.move(0, 0, 0)
     t.fps = 60
     t.ups = 30
-    t.set_wireframe_overlay(True)
+    t.speed = 0.1
+    t.rot_speed = 0.01
+    t.light_dir = Vec3(0.9, 0.9, 0.9)
+    t.light_itensity = 5
+    t.back_face_inv = False
+    #t.set_wireframe_overlay(True)
     listen_for_keys(["w", "a", "s", "d", "space", "Shift_L", "Up", "Down", "Left", "Right"])
 
 
 def draw(t: Turtl3):
-    t.cube(0, 0, -2, 5, 5, 5, colors=[Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0), Vec3(0, 0, 1), Vec3(1, 1, 0), Vec3(0, 1, 1)])
+    t.cube(-5, 0, 5, 10, 1, 10, colors=[Vec3(0.5, 0, 0.5), Vec3(0.5, 0, 0), Vec3(0, 0.5, 0), Vec3(0, 0, 0.5), Vec3(0.5, 0.5, 0), Vec3(0, 0.5, 0.5)])
     t.model(model)
 
 
@@ -40,9 +50,11 @@ def update(t: Turtl3):
     if is_pressed("Right"):
         t.rotate(0, -1, 0)
 
+    t.light_dir = Vec3(math.sin(t.frame / 100), 0, math.cos(t.frame / 100))
+
 
 def main():
-    t = Turtl3(800, 600)
+    t = Turtl3(1000, 800)
     t.loop(start, draw, update)
 
 

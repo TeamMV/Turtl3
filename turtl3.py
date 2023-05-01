@@ -36,21 +36,27 @@ class Turtl3:
         self.obj_ptr = 0
         self.fps = 60
         self.ups = 30
-        self.speed = 0.4
-        self.rot_speed = 0.01
+        self.speed = 0.2
+        self.rot_speed = 0.1
         self.mode = T3_TRIANGLES
         self.wireframe = False
         self.wireframe_overlay = False
-        self.pos = Vec3(0, 0, -20)
-        self.rot = Vec3()
+        self.pos = Vec3(0, 0, -25)
+        self.rot = Vec3(0, -0.5, 0)
+        self.light_dir = Vec3(0, 0, 0)
+        self.light_itensity = 10
+        self.frame = 0
+        self.back_face_inv = False
+        self.enable_depth_test = True
         self.view = Mat4()
         self.projection = Mat4()
-        self.projection.perspective(80, self.width / self.height, 0.01, 2000)
+        self.projection.perspective(80, self.width / self.height, 0, 2000)
         turtle.setup(width, height, 0, 0)
         turtle.hideturtle()
         turtle.delay(0)
-        turtle.speed(0)
+        turtle.speed("slow")
         turtle.tracer(0, 0)
+        turtle.Screen().bgcolor("gray20")
 
     def set_draw_mode(self, mode):
         self.mode = mode
@@ -77,6 +83,7 @@ class Turtl3:
             if (time.time() * 1000) - r >= fb:
                 draw(self)
                 self.render(self.mode)
+                self.frame += 1
             if (time.time() * 1000) - u >= ub:
                 update(self)
 
@@ -117,7 +124,7 @@ class Turtl3:
             self.indices.append(self.obj_ptr + index)
         self.obj_ptr += len(model.vertices)
         for i in range(len(model.indices) // 3):
-            self.colors.append("gray50")
+            self.colors.append(Vec3(0.5, 0.5, 0.5))
 
     def cube(self, x, y, z, w, h, d, **kwargs):
         self.vertices.append(Vec3(x, y, z))
@@ -129,47 +136,90 @@ class Turtl3:
         self.vertices.append(Vec3(x + w, y + h, z + d))
         self.vertices.append(Vec3(x, y + h, z + d))
 
-        self.indices.append(self.obj_ptr + 5)
-        self.indices.append(self.obj_ptr + 1)
-        self.indices.append(self.obj_ptr + 0)
-        self.indices.append(self.obj_ptr + 0)
-        self.indices.append(self.obj_ptr + 4)
-        self.indices.append(self.obj_ptr + 5)
+        if self.back_face_inv:
+            self.indices.append(self.obj_ptr + 5)
+            self.indices.append(self.obj_ptr + 1)
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 5)
 
-        self.indices.append(self.obj_ptr + 6)
-        self.indices.append(self.obj_ptr + 2)
-        self.indices.append(self.obj_ptr + 1)
-        self.indices.append(self.obj_ptr + 1)
-        self.indices.append(self.obj_ptr + 5)
-        self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 1)
+            self.indices.append(self.obj_ptr + 1)
+            self.indices.append(self.obj_ptr + 5)
+            self.indices.append(self.obj_ptr + 6)
 
-        self.indices.append(self.obj_ptr + 7)
-        self.indices.append(self.obj_ptr + 3)
-        self.indices.append(self.obj_ptr + 2)
-        self.indices.append(self.obj_ptr + 2)
-        self.indices.append(self.obj_ptr + 6)
-        self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 3)
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 7)
 
-        self.indices.append(self.obj_ptr + 4)
-        self.indices.append(self.obj_ptr + 0)
-        self.indices.append(self.obj_ptr + 3)
-        self.indices.append(self.obj_ptr + 3)
-        self.indices.append(self.obj_ptr + 7)
-        self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 3)
+            self.indices.append(self.obj_ptr + 3)
+            self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 4)
 
-        self.indices.append(self.obj_ptr + 6)
-        self.indices.append(self.obj_ptr + 5)
-        self.indices.append(self.obj_ptr + 4)
-        self.indices.append(self.obj_ptr + 4)
-        self.indices.append(self.obj_ptr + 7)
-        self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 5)
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 6)
 
-        self.indices.append(self.obj_ptr + 0)
-        self.indices.append(self.obj_ptr + 1)
-        self.indices.append(self.obj_ptr + 2)
-        self.indices.append(self.obj_ptr + 2)
-        self.indices.append(self.obj_ptr + 3)
-        self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 1)
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 3)
+            self.indices.append(self.obj_ptr + 0)
+        else:
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 1)
+            self.indices.append(self.obj_ptr + 5)
+            self.indices.append(self.obj_ptr + 5)
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 0)
+
+            self.indices.append(self.obj_ptr + 1)
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 5)
+            self.indices.append(self.obj_ptr + 1)
+
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 3)
+            self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 2)
+
+            self.indices.append(self.obj_ptr + 3)
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 3)
+
+            self.indices.append(self.obj_ptr + 4)
+            self.indices.append(self.obj_ptr + 5)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 6)
+            self.indices.append(self.obj_ptr + 7)
+            self.indices.append(self.obj_ptr + 4)
+
+            self.indices.append(self.obj_ptr + 2)
+            self.indices.append(self.obj_ptr + 1)
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 0)
+            self.indices.append(self.obj_ptr + 3)
+            self.indices.append(self.obj_ptr + 2)
 
         self.obj_ptr += 8
 
@@ -193,11 +243,14 @@ class Renderer3D:
     def render(self, vertices, indices, colors, projection, view, mode: int, width, height, wireframe, overlay):
         """Vec3(x, y, z)"""
         mapped = []
+        points = []
         vp = projection * view
         w = width / 2
         h = height / 2
+
         for vertex in vertices:
             point = vp.vec_mul(Vec4(float(vertex.x()), float(vertex.y()), float(vertex.z()), 1.0))
+            points.append(Vec3(point.x(), point.y(), point.z()))
             if point.w() == 0:
                 mapped.append(Vec2(0.0, 0.0))
             else:
@@ -230,17 +283,31 @@ class Renderer3D:
                 b = current[k]
                 s += a.x() * b.y()
                 s -= a.y() * b.x()
-            if s < 0:
-                i += mode
-                continue
+            if self.turtl3.back_face_inv:
+                if s < 0:
+                    i += mode
+                    continue
+            else:
+                if s >= 0:
+                    i += mode
+                    continue
 
             color = colors[i // mode]
-            if isinstance(color, str):
-                turtle.pencolor(color)
-                turtle.fillcolor(color)
-            else:
-                turtle.pencolor((color.x(), color.y(), color.z()))
-                turtle.fillcolor((color.x(), color.y(), color.z()))
+
+            # calculate light
+            # float diff = max(dot(norm, lightDir), 0.0);
+            # vec3 diffuse = diff * lightColor;
+            norm = self.surface_normal(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]).normalize()
+            dotp = norm.dot(self.turtl3.light_dir)
+            diff = min(max(dotp, 0.3), 1.0)
+            color = color * diff
+
+            # if isinstance(color, str):
+            #     turtle.pencolor(color)
+            #     turtle.fillcolor(color)
+            # else:
+            turtle.pencolor(color.x(), color.y(), color.z())
+            turtle.fillcolor(color.x(), color.y(), color.z())
             if overlay:
                 turtle.pencolor("black")
             turtle.penup()
@@ -254,6 +321,15 @@ class Renderer3D:
                 turtle.end_fill()
             turtle.penup()
             i += mode
+
+    def surface_normal(self, p1, p2, p3):
+        u = p2 - p1
+        v = p3 - p1
+        return Vec3(
+            u.y() * v.z() - u.z() * v.y(),
+            u.z() * v.x() - u.x() * v.z(),
+            u.x() * v.y() - u.y() * v.x()
+        )
 
 
 def fma(a, b, c):
@@ -321,6 +397,25 @@ class Mat4:
         self[3][2] = -1.0
 
     def translate(self, x, y, z):
+        m1 = Mat4()
+        m1.mat4[0] = self[0]
+        m1.mat4[1] = self[1]
+        m1.mat4[2] = self[2]
+        m1.mat4[3] = self[3]
+
+        m2 = Mat4()
+        m2.ident()
+        m2[0][3] = x
+        m2[1][3] = y
+        m2[2][3] = z
+        m1 *= m2
+
+        self.mat4[0] = m1[0]
+        self.mat4[1] = m1[1]
+        self.mat4[2] = m1[2]
+        self.mat4[3] = m1[3]
+        return
+
         self[0][3] = fma(self[0][0], x, fma(self[0][1], y, fma(self[0][2], z, self[0][3])))
         self[1][3] = fma(self[1][0], x, fma(self[1][1], y, fma(self[1][2], z, self[1][3])))
         self[2][3] = fma(self[2][0], x, fma(self[2][1], y, fma(self[2][2], z, self[2][3])))
@@ -434,9 +529,30 @@ class Vec3:
     def __add__(self, other):
         return Vec3(self.x() + other.x(), self.y() + other.y(), self.z() + other.z())
 
+    def __sub__(self, other):
+        return Vec3(self.x() - other.x(), self.y() - other.y(), self.z() - other.z())
+
     def __mul__(self, other):
         return Vec3(self.x() * other, self.y() * other, self.z() * other)
 
+    def dot(self, other):
+        return self.x() * other.x() + self.y() * other.y() + self.z() * other.z()
+
+    def cross(self, other):
+        return Vec3(self.y() * other.z() - self.z() * other.y(), self.z() * other.x() - self.x() * other.z(), self.x() * other.y() - self.y() * other.x())
+
+    def normalize(self):
+        length = math.sqrt(self.x() * self.x() + self.y() * self.y() +  self.z() * self.z())
+        self.set_x(self.x() / length)
+        self.set_y(self.y() / length)
+        self.set_z(self.z() / length)
+        return self
+
+    def distance(self, other):
+        return math.sqrt(sq(other.x() - self.x()) + sq(other.y() - self.y()) + sq(other.z() - self.z()))
+
+def sq(n):
+    return n * n
 
 class Vec2:
     def __init__(self, x=0.0, y=0.0):
