@@ -51,7 +51,7 @@ class Turtl3:
         self.enable_lighting = True
         self.view = Mat4()
         self.projection = Mat4()
-        self.projection.perspective(80, self.width / self.height, 0, 2000)
+        self.projection.perspective(math.radians(90), self.width / self.height, 0, 2000)
         turtle.setup(width, height, 0, 0)
         turtle.hideturtle()
         turtle.delay(0)
