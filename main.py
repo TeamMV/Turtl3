@@ -19,7 +19,7 @@ def start(t: Turtl3):
     t.light_dir = Vec3(0.9, 0.9, 0.9)
     t.light_itensity = 5
     t.back_face_inv = False
-    #t.enable_lighting = False
+    t.enable_lighting = True
     t.enable_depth_test = True
     #t.set_wireframe_overlay(True)
     listen_for_keys(["w", "a", "s", "d", "space", "Shift_L", "Up", "Down", "Left", "Right"])
@@ -52,7 +52,7 @@ def update(t: Turtl3):
     if is_pressed("Right"):
         t.rotate(0, -1, 0)
 
-    t.light_dir = Vec3(math.sin(t.frame / 100), 0, math.cos(t.frame / 100))
+    t.light_dir = Vec3(math.sin(t.frame / 50), 0, math.cos(t.frame / 50))
 
 
 def main():
