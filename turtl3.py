@@ -48,15 +48,16 @@ class Turtl3:
         self.frame = 0
         self.back_face_inv = False
         self.enable_depth_test = True
+        self.enable_lighting = True
         self.view = Mat4()
         self.projection = Mat4()
         self.projection.perspective(80, self.width / self.height, 0, 2000)
         turtle.setup(width, height, 0, 0)
         turtle.hideturtle()
         turtle.delay(0)
-        turtle.speed("slow")
+        turtle.speed(0)
         turtle.tracer(0, 0)
-        turtle.Screen().bgcolor("gray20")
+        turtle.Screen().bgcolor("white")
 
     def set_draw_mode(self, mode):
         self.mode = mode
@@ -127,7 +128,7 @@ class Turtl3:
             self.colors.append(Vec3(0.5, 0.5, 0.5))
 
     def cube(self, x, y, z, w, h, d, **kwargs):
-        self.vertices.append(Vec3(x, y, z))
+        self.vertices.append(Vec3(x, y, z), )
         self.vertices.append(Vec3(x + w, y, z))
         self.vertices.append(Vec3(x + w, y, z + d))
         self.vertices.append(Vec3(x, y, z + d))
@@ -236,6 +237,12 @@ class Turtl3:
                 self.colors.append(color)
 
 
+def average(*values):
+    s = 0
+    for value in values:
+        s += value
+    return s / len(values)
+
 class Renderer3D:
     def __init__(self, turtl3):
         self.turtl3 = turtl3
@@ -256,6 +263,33 @@ class Renderer3D:
             else:
                 mapped.append(Vec2((point.x() / point.w()), (point.y() / point.w())))
 
+        if self.turtl3.enable_depth_test:
+            idx = 0
+            distances = []
+            max_distance = 0
+            while idx < len(indices):
+                v1 = vertices[indices[idx]]
+                v2 = vertices[indices[idx + 1]]
+                v3 = vertices[indices[idx + 2]]
+                color = colors[idx // 3]
+                dist = average(v1.distance(self.turtl3.pos), v2.distance(self.turtl3.pos), v3.distance(self.turtl3.pos))
+                max_distance = max(dist, 0.0)
+                distances.append((dist, (indices[idx], indices[idx + 1], indices[idx + 2], color)))
+                idx += 3
+
+            distances.sort(key=lambda d: d[0])
+            sorted_indices = [d[1] for d in distances]
+            appended_indices = []
+            appended_colors = []
+            for s1, s2, s3, c in sorted_indices: #[(s1, s2, s3, c),...]
+                appended_indices.append(s1)
+                appended_indices.append(s2)
+                appended_indices.append(s3)
+                appended_colors.append(c)
+            indices = appended_indices
+            colors = appended_colors
+
+
         i = 0
         while i < len(indices):
             # check null indices
@@ -265,11 +299,12 @@ class Renderer3D:
 
             current = [mapped[j] for j in indices[i:i + mode]]
 
-            # check for indices outside the camera
+            #check for indices outside the camera
             for vertex in current:
                 if abs(vertex.x()) < 1.0 or abs(vertex.y()) < 1.0:
                     break
             else:
+                pass
                 i += mode
                 continue
 
@@ -295,12 +330,11 @@ class Renderer3D:
             color = colors[i // mode]
 
             # calculate light
-            # float diff = max(dot(norm, lightDir), 0.0);
-            # vec3 diffuse = diff * lightColor;
-            norm = self.surface_normal(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]).normalize()
-            dotp = norm.dot(self.turtl3.light_dir)
-            diff = min(max(dotp, 0.3), 1.0)
-            color = color * diff
+            if self.turtl3.enable_lighting:
+                norm = self.surface_normal(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]).normalize()
+                dotp = norm.dot(self.turtl3.light_dir)
+                diff = min(max(dotp, 0.3), 1.0)
+                color = color * diff
 
             # if isinstance(color, str):
             #     turtle.pencolor(color)
@@ -542,7 +576,7 @@ class Vec3:
         return Vec3(self.y() * other.z() - self.z() * other.y(), self.z() * other.x() - self.x() * other.z(), self.x() * other.y() - self.y() * other.x())
 
     def normalize(self):
-        length = math.sqrt(self.x() * self.x() + self.y() * self.y() +  self.z() * self.z())
+        length = math.sqrt(self.x() * self.x() + self.y() * self.y() + self.z() * self.z())
         self.set_x(self.x() / length)
         self.set_y(self.y() / length)
         self.set_z(self.z() / length)
