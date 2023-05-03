@@ -2,10 +2,6 @@ import turtle
 import math
 import time
 
-T3_LINES = 2
-T3_TRIANGLES = 3
-T3_QUADS = 4
-
 PI_4 = math.radians(90)
 
 keys = []
@@ -38,7 +34,6 @@ class Turtl3:
         self.ups = 30
         self.speed = 0.2
         self.rot_speed = 0.1
-        self.mode = T3_TRIANGLES
         self.wireframe = False
         self.wireframe_overlay = False
         self.pos = Vec3(0, 0, -25)
@@ -47,6 +42,8 @@ class Turtl3:
         self.light_itensity = 10
         self.frame = 0
         self.back_face_inv = False
+        self.back_face_check = True
+        self.negative_z_check = True
         self.enable_depth_test = True
         self.enable_lighting = True
         self.view = Mat4()
@@ -58,9 +55,6 @@ class Turtl3:
         turtle.speed(0)
         turtle.tracer(0, 0)
         turtle.Screen().bgcolor("white")
-
-    def set_draw_mode(self, mode):
-        self.mode = mode
 
     def set_wireframe(self, wireframe):
         self.wireframe = wireframe
@@ -83,7 +77,7 @@ class Turtl3:
         while True:
             if (time.time() * 1000) - r >= fb:
                 draw(self)
-                self.render(self.mode)
+                self.render()
                 self.frame += 1
             if (time.time() * 1000) - u >= ub:
                 update(self)
@@ -108,9 +102,9 @@ class Turtl3:
         self.rot += Vec3(x, y, z) * self.rot_speed
         self.view.move(self.pos, self.rot)
 
-    def render(self, mode):
+    def render(self):
         turtle.clear()
-        self.ren.render(self.vertices, self.indices, self.colors, self.projection, self.view, mode, self.width,
+        self.ren.render(self.vertices, self.indices, self.colors, self.projection, self.view, self.width,
                         self.height, self.wireframe, self.wireframe_overlay)
         turtle.update()
         self.vertices.clear()
@@ -243,11 +237,12 @@ def average(*values):
         s += value
     return s / len(values)
 
+
 class Renderer3D:
     def __init__(self, turtl3):
         self.turtl3 = turtl3
 
-    def render(self, vertices, indices, colors, projection, view, mode: int, width, height, wireframe, overlay):
+    def render(self, vertices, indices, colors, projection, view, width, height, wireframe, overlay):
         """Vec3(x, y, z)"""
         mapped = []
         points = []
@@ -258,22 +253,20 @@ class Renderer3D:
         for vertex in vertices:
             point = vp.vec_mul(Vec4(float(vertex.x()), float(vertex.y()), float(vertex.z()), 1.0))
             points.append(Vec3(point.x(), point.y(), point.z()))
-            if point.w() == 0:
-                mapped.append(Vec2(0.0, 0.0))
+            if math.isclose(point.w(), 0):
+                mapped.append(Vec3(0.0, 0.0, 0.0))
             else:
-                mapped.append(Vec2((point.x() / point.w()), (point.y() / point.w())))
+                mapped.append(Vec3(point.x() / point.w(), point.y() / point.w(), point.z()))
 
         if self.turtl3.enable_depth_test:
             idx = 0
             distances = []
-            max_distance = 0
             while idx < len(indices):
                 v1 = vertices[indices[idx]]
                 v2 = vertices[indices[idx + 1]]
                 v3 = vertices[indices[idx + 2]]
                 color = colors[idx // 3]
                 dist = average(v1.distance(self.turtl3.pos), v2.distance(self.turtl3.pos), v3.distance(self.turtl3.pos))
-                max_distance = max(dist, 0.0)
                 distances.append((dist, (indices[idx], indices[idx + 1], indices[idx + 2], color)))
                 idx += 3
 
@@ -281,7 +274,7 @@ class Renderer3D:
             sorted_indices = [d[1] for d in distances]
             appended_indices = []
             appended_colors = []
-            for s1, s2, s3, c in sorted_indices: #[(s1, s2, s3, c),...]
+            for s1, s2, s3, c in sorted_indices:  # [(s1, s2, s3, c),...]
                 appended_indices.append(s1)
                 appended_indices.append(s2)
                 appended_indices.append(s3)
@@ -289,63 +282,146 @@ class Renderer3D:
             indices = appended_indices
             colors = appended_colors
 
-
         i = 0
         while i < len(indices):
             # check null indices
             if indices[i] == -1:
-                i += mode
+                i += 3
                 continue
 
-            current = [mapped[j] for j in indices[i:i + mode]]
+            current = [mapped[j] for j in indices[i:i + 3]]
 
-            #check for indices outside the camera
+            # check for indices outside the camera
             for vertex in current:
                 if abs(vertex.x()) < 1.0 or abs(vertex.y()) < 1.0:
                     break
             else:
-                pass
-                i += mode
+                i += 3
                 continue
 
-            # check for back-facing polygons
-            s = 0
-            for j in range(mode):
-                k = j + 1
-                if j == mode - 1:
-                    k = 0
-                a = current[j]
-                b = current[k]
-                s += a.x() * b.y()
-                s -= a.y() * b.x()
-            if self.turtl3.back_face_inv:
-                if s < 0:
-                    i += mode
+            if self.turtl3.negative_z_check:
+                outside = []
+                inside = []
+                for j in range(3):
+                    if current[j].z() < 0:
+                        outside.append(j)
+                    else:
+                        inside.append(j)
+                if len(outside) == 3:
+                    i += 3
                     continue
-            else:
-                if s >= 0:
-                    i += mode
-                    continue
+                elif len(outside) == 2:
+                    inner = current[inside[0]]
 
-            color = colors[i // mode]
+                    outer = current[outside[0]]
+                    ratio = inner.z() / (inner.z() - outer.z())
+                    new_x = (outer.x() - inner.x()) * ratio
+                    new_y = (outer.y() - inner.y()) * ratio
+                    current[outside[0]] = Vec3(inner.x() - new_x, inner.y() - new_y, 0.0)
+
+                    outer = current[outside[1]]
+                    ratio = inner.z() / (inner.z() - outer.z())
+                    new_x = (outer.x() - inner.x()) * ratio
+                    new_y = (outer.y() - inner.y()) * ratio
+                    current[outside[1]] = Vec3(inner.x() - new_x, inner.y() - new_y, 0.0)
+                elif len(outside) == 1:
+                    outer = current[outside[0]]
+
+                    inner_a = current[inside[0]]
+                    inner_b = current[inside[1]]
+
+                    current.clear()
+                    if inside[0] > inside[1]:
+                        current.append(inner_b)
+
+                        if outside[0] == 1:
+                            ratio = inner_b.z() / (inner_b.z() - outer.z())
+                            new_x = (outer.x() - inner_b.x()) * ratio
+                            new_y = (outer.y() - inner_b.y()) * ratio
+                            current.append(Vec3(inner_b.x() - new_x, inner_b.y() - new_y, 0.0))
+
+                            ratio = inner_a.z() / (inner_a.z() - outer.z())
+                            new_x = (outer.x() - inner_a.x()) * ratio
+                            new_y = (outer.y() - inner_a.y()) * ratio
+                            current.append(Vec3(inner_a.x() - new_x, inner_a.y() - new_y, 0.0))
+
+                            current.append(inner_a)
+                        else:
+                            current.append(inner_a)
+
+                            ratio = inner_a.z() / (inner_a.z() - outer.z())
+                            new_x = (outer.x() - inner_a.x()) * ratio
+                            new_y = (outer.y() - inner_a.y()) * ratio
+                            current.append(Vec3(inner_a.x() - new_x, inner_a.y() - new_y, 0.0))
+
+                            ratio = inner_b.z() / (inner_b.z() - outer.z())
+                            new_x = (outer.x() - inner_b.x()) * ratio
+                            new_y = (outer.y() - inner_b.y()) * ratio
+                            current.append(Vec3(inner_b.x() - new_x, inner_b.y() - new_y, 0.0))
+                    else:
+                        current.append(inner_a)
+
+                        if outside[0] == 1:
+                            ratio = inner_a.z() / (inner_a.z() - outer.z())
+                            new_x = (outer.x() - inner_a.x()) * ratio
+                            new_y = (outer.y() - inner_a.y()) * ratio
+                            current.append(Vec3(inner_a.x() - new_x, inner_a.y() - new_y, 0.0))
+
+                            ratio = inner_b.z() / (inner_b.z() - outer.z())
+                            new_x = (outer.x() - inner_b.x()) * ratio
+                            new_y = (outer.y() - inner_b.y()) * ratio
+                            current.append(Vec3(inner_b.x() - new_x, inner_b.y() - new_y, 0.0))
+
+                            current.append(inner_b)
+                        else:
+                            current.append(inner_b)
+
+                            ratio = inner_b.z() / (inner_b.z() - outer.z())
+                            new_x = (outer.x() - inner_b.x()) * ratio
+                            new_y = (outer.y() - inner_b.y()) * ratio
+                            current.append(Vec3(inner_b.x() - new_x, inner_b.y() - new_y, 0.0))
+
+                            ratio = inner_a.z() / (inner_a.z() - outer.z())
+                            new_x = (outer.x() - inner_a.x()) * ratio
+                            new_y = (outer.y() - inner_a.y()) * ratio
+                            current.append(Vec3(inner_a.x() - new_x, inner_a.y() - new_y, 0.0))
+
+            # check for back-facing polygons
+            if self.turtl3.back_face_check:
+                s = 0
+                for j in range(3):
+                    k = j + 1
+                    if j == 3 - 1:
+                        k = 0
+                    a = current[j]
+                    b = current[k]
+                    s += a.x() * b.y()
+                    s -= a.y() * b.x()
+                if self.turtl3.back_face_inv:
+                    if s < 0:
+                        i += 3
+                        continue
+                else:
+                    if s >= 0:
+                        i += 3
+                        continue
+
+            color = colors[i // 3]
 
             # calculate light
             if self.turtl3.enable_lighting:
-                norm = self.surface_normal(vertices[indices[i]], vertices[indices[i + 1]], vertices[indices[i + 2]]).normalize()
+                norm = self.surface_normal(vertices[indices[i]], vertices[indices[i + 1]],
+                                           vertices[indices[i + 2]]).normalize()
                 dotp = norm.dot(self.turtl3.light_dir)
                 diff = min(max(dotp, 0.3), 1.0)
                 color = color * diff
 
-            # if isinstance(color, str):
-            #     turtle.pencolor(color)
-            #     turtle.fillcolor(color)
-            # else:
             turtle.pencolor(color.x(), color.y(), color.z())
             turtle.fillcolor(color.x(), color.y(), color.z())
             if overlay:
                 turtle.pencolor("black")
             turtle.penup()
-            turtle.goto(current[mode - 1].x() * w, current[mode - 1].y() * h)
+            turtle.goto(current[len(current) - 1].x() * w, current[len(current) - 1].y() * h)
             turtle.pendown()
             if not wireframe:
                 turtle.begin_fill()
@@ -354,7 +430,7 @@ class Renderer3D:
             if not wireframe:
                 turtle.end_fill()
             turtle.penup()
-            i += mode
+            i += 3
 
     def surface_normal(self, p1, p2, p3):
         u = p2 - p1
@@ -573,10 +649,16 @@ class Vec3:
         return self.x() * other.x() + self.y() * other.y() + self.z() * other.z()
 
     def cross(self, other):
-        return Vec3(self.y() * other.z() - self.z() * other.y(), self.z() * other.x() - self.x() * other.z(), self.x() * other.y() - self.y() * other.x())
+        return Vec3(self.y() * other.z() - self.z() * other.y(), self.z() * other.x() - self.x() * other.z(),
+                    self.x() * other.y() - self.y() * other.x())
 
     def normalize(self):
         length = math.sqrt(self.x() * self.x() + self.y() * self.y() + self.z() * self.z())
+        if math.isclose(length, 0.0):
+            self.set_x(0.0)
+            self.set_y(0.0)
+            self.set_z(0.0)
+            return self
         self.set_x(self.x() / length)
         self.set_y(self.y() / length)
         self.set_z(self.z() / length)
@@ -585,8 +667,10 @@ class Vec3:
     def distance(self, other):
         return math.sqrt(sq(other.x() - self.x()) + sq(other.y() - self.y()) + sq(other.z() - self.z()))
 
+
 def sq(n):
     return n * n
+
 
 class Vec2:
     def __init__(self, x=0.0, y=0.0):

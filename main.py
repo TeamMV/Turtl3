@@ -21,6 +21,7 @@ def start(t: Turtl3):
     t.back_face_inv = False
     t.enable_lighting = True
     t.enable_depth_test = True
+    t.negative_z_check = True
     #t.set_wireframe_overlay(True)
     listen_for_keys(["w", "a", "s", "d", "space", "Shift_L", "Up", "Down", "Left", "Right"])
 
