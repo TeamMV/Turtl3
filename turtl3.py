@@ -131,7 +131,7 @@ class Turtl3:
         self.vertices.append(Vec3(x + w, y + h, z + d))
         self.vertices.append(Vec3(x, y + h, z + d))
 
-        if self.back_face_inv:
+        if self.back_face_inv and False:
             self.indices.append(self.obj_ptr + 5)
             self.indices.append(self.obj_ptr + 1)
             self.indices.append(self.obj_ptr + 0)
