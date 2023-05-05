@@ -56,7 +56,7 @@ def update(t: Turtl3):
     if is_pressed("Right"):
         t.rotate(0, 1, 0)
 
-    t.light_dir = Vec3(math.sin(t.frame / 50), 0, math.cos(t.frame / 50))
+    t.light_dir = Vec3(math.sin(t.frame / 50), -0.5, math.cos(t.frame / 50))
 
 
 def main():
