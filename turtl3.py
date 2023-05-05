@@ -39,7 +39,7 @@ class Turtl3:
         self.pos = Vec3(0, 0, -25)
         self.rot = Vec3(0, -0.5, 0)
         self.light_dir = Vec3(0, 0, 0)
-        self.light_itensity = 10
+        self.light_intensity = 10
         self.frame = 0
         self.back_face_inv = False
         self.back_face_check = True
@@ -121,7 +121,7 @@ class Turtl3:
         for i in range(len(model.indices) // 3):
             self.colors.append(Vec3(0.5, 0.5, 0.5))
 
-    def cube(self, x, y, z, w, h, d, **kwargs):
+    def cube(self, x, y, z, w, h, d, ignore_back_face=False, **kwargs):
         self.vertices.append(Vec3(x, y, z), )
         self.vertices.append(Vec3(x + w, y, z))
         self.vertices.append(Vec3(x + w, y, z + d))
@@ -131,7 +131,7 @@ class Turtl3:
         self.vertices.append(Vec3(x + w, y + h, z + d))
         self.vertices.append(Vec3(x, y + h, z + d))
 
-        if self.back_face_inv and False:
+        if self.back_face_inv and not ignore_back_face:
             self.indices.append(self.obj_ptr + 5)
             self.indices.append(self.obj_ptr + 1)
             self.indices.append(self.obj_ptr + 0)

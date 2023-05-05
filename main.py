@@ -5,7 +5,6 @@ from turtl3 import *
 
 model = None
 
-sphere = False
 
 def start(t: Turtl3):
     global model
@@ -15,27 +14,27 @@ def start(t: Turtl3):
     t.move(0, 0, 0)
     t.fps = 60
     t.ups = 30
-    t.speed = 0.005
-    t.rot_speed = 0.001
+    t.speed = 0.05
+    t.rot_speed = 0.01
     t.light_dir = Vec3(0.9, 0.9, 0.9)
-    t.light_itensity = 5
+    t.light_intensity = 5
     t.back_face_inv = False
-    t.enable_lighting = False #l
-    t.enable_depth_test = False #b
-    t.negative_z_check = False #z
-    t.back_face_check = False #c
-    t.set_wireframe_overlay(False) #x
-    listen_for_keys(["w", "a", "s", "d", "space", "Shift_L", "Up", "Down", "Left", "Right", "l", "b", "z", "x", "o", "c", "i"])
+    t.enable_lighting = True
+    t.enable_depth_test = True
+    t.negative_z_check = True
+    t.back_face_check = True
+    t.set_wireframe_overlay(False)
+    listen_for_keys(["w", "a", "s", "d", "space", "Shift_L", "Up", "Down", "Left", "Right"])
 
 
 def draw(t: Turtl3):
-    t.cube(-5, 0, 5, 10, 1, 10, colors=[Vec3(0.5, 0, 0.5), Vec3(0.5, 0, 0), Vec3(0, 0.5, 0), Vec3(0, 0, 0.5), Vec3(0.5, 0.5, 0), Vec3(0, 0.5, 0.5)])
-    if sphere:
-        t.model(model)
+    t.cube(-5, 0, 5, 10, 1, 10,
+           colors=[Vec3(0.5, 0, 0.5), Vec3(0.5, 0, 0), Vec3(0, 0.5, 0), Vec3(0, 0, 0.5), Vec3(0.5, 0.5, 0),
+                   Vec3(0, 0.5, 0.5)])
+    t.model(model)
 
 
 def update(t: Turtl3):
-    global sphere
     if is_pressed("space"):
         t.move(0, -1, 0)
     if is_pressed("Shift_L"):
@@ -56,27 +55,6 @@ def update(t: Turtl3):
         t.rotate(0, -1, 0)
     if is_pressed("Right"):
         t.rotate(0, 1, 0)
-
-    if is_pressed("l"):
-        t.enable_lighting = not t.enable_lighting
-    if is_pressed("b"):
-        t.enable_depth_test = not t.enable_depth_test
-    if is_pressed("z"):
-        t.negative_z_check = not t.negative_z_check
-    if is_pressed("x"):
-        t.set_wireframe_overlay(not t.wireframe_overlay)
-    if is_pressed("o"):
-        sphere = not sphere
-        if sphere:
-            t.speed = 0.05
-            t.rot_speed = 0.01
-        else:
-            t.speed = 0.005
-            t.rot_speed = 0.001
-    if is_pressed("c"):
-        t.back_face_check = not t.back_face_check
-    if is_pressed("i"):
-        t.back_face_inv = not t.back_face_inv
 
     t.light_dir = Vec3(math.sin(t.frame / 50), 0, math.cos(t.frame / 50))
 
